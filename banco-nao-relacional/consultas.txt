@@ -1,0 +1,113 @@
+Consultas #1
+
+db.estados.find({$or: [{sigla: "RJ"},{sigla:"AC"}]})
+
+db.estados.find({populacao: {$exists: true}})
+
+db.estados.find().skip(2).limit(1) -- saltar 2 e devolver só 1 resultado
+
+db.estados.count() -- contar os resultados
+db.estados.countDocuments() -- sem estar deprecated
+db.estados.estimatedDocumentCount() -- alternativa
+
+db.estados.find({sigla: "SP"}, {nome:1, sigla:1}) -- o segundo parametro diz que atributos queremos no resultado, ou seja devolve o nome e a sigla
+db.estados.find({sigla: "SP"}, {nome:1, sigla:1, _id: 0}) -- igual mas sem o id
+
+db.estados.find({sigla: "SP"}, {"cidades.nome":1, _id: 0}) -- nome das cidades que estão dentro do estado com a sigla SP
+
+---
+
+Consultas #2
+
+db.estados.aggregate([
+    { $project : {nome:1, "cidades.nome":1, _id: 0 }}
+])
+
+db.estados.aggregate([
+    { $project : { populacao: {$sum: "$cidades.populacao"}, sigla:1, _id: 0}}
+])
+
+db.estados.aggregate([
+    { $project : { populacao: {$sum: "$cidades.populacao"}, sigla:1, _id: 0}},
+    { $group: {_id:null, populacaoTotal: {$sum: "$populacao"}}},
+    { $project: {_id:0, populacaoTotal: 1}}
+])
+
+
+----
+
+Consultas #3
+
+db.estados.aggregate([
+    { $match : { "cidades.nome": "Sorocaba"}}, //apenas os estados que têm a cidade Sorocaba
+    { $unwind: "$cidades"},                     //separar o resultado ficando 1 estado 1 cidade
+    { $match : { "cidades.nome": "Sorocaba"}}, // só o que tinha Sorocaba
+    { $project : {_id: "$cidades._id"}}         //obter apenas o id desse
+])
+
+-----
+
+Update
+
+db.estados.updateOne({sigla: "SP"},{$set: {populacao: 45340000}})
+db.estados.updateOne({sigla:"AL"}, {$set: {cidades: [{nome:"Sergipe"}]}})
+db.estados.updateOne({sigla:"SP"}, {$push: {cidades: [{nome:"Santos", populacao: 433966}]}})
+
+
+-----
+
+Remove
+
+db.estados.deleteOne({sigla:"AC"})
+db.estados.deleteOne({populacao: {$exists: true}})
+
+db.estados.remove({populacao: {$lt: 20000000}}) -- remover os que têm menos de 20 milhoes na populacao
+
+--- Inserir Empresas
+
+db.empresas.insertOne({nome: "Bradesco", estadoId: ObjectId("6373b36da9b98be63215ab33")})
+db.empresas.insertOne({nome: "Vale", cidadeId: ObjectId("6373b725a9b98be63215ab39")})
+----
+db.estados.insert({
+    nome: "Rio de Janeiro",
+    sigla: "RJ",
+    regiao: "Sudeste",
+    cidades: [{
+        _id: ObjectId(),
+        nome: "Niteroi",
+        area: 139.9,
+        populacao: 487562
+    }]
+})
+----
+
+Consultas Lookup
+
+db.empresas.aggregate([
+    {$match: {nome:"Bradesco"}},
+    {$lookup: {
+        from: "estados",
+        localField: "estadoId",
+        foreignField: "_id",
+        as: "estado"
+    }},
+    {$unwind: "$estado"}
+])
+
+
+db.empresas.aggregate([
+    {$match: {nome:"Vale"}},
+    {$lookup: {
+        from: "estados",
+        localField: "cidadeId",
+        foreignField: "cidades._id",
+        as: "estado"
+    }},
+    {$unwind: "$estado"},
+    {$unwind: "$estado.cidades"},
+    {$addFields: {mesmaCidade: {$cmp: ["$estado.cidades._id","$cidadeId"]}}},
+    {$match: {mesmaCidade: 0}}
+])
+
+
+{$match: {"estados.cidades._id":"$cidadeId"}}
