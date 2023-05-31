@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Eventos</title>
+    <link rel="stylesheet" href="/css/estilo.css">
+    <script src="/js/vue.min.js"></script>
+</head>
+<body class="exercicio">
+    <div id="app">
+        <p>Contador: {{contador}}</p>
+        <p>
+            <button v-on:click="add">+1</button>
+            <!-- Outra forma de fazer o bind @click = v-on:click -->
+            <button @click="contador -=1">-1</button>
+        </p>
+        <p @mousemove="atualizarPosicao" style="border: 1px solid red">
+            Coordenada: {{x}} e {{y}}
+            <span @mousemove.stop style="border: 1px solid red">Aqui Não</span>
+        </p>
+        <input type="text" @keyup.enter="alerta">
+        
+    </div>
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                x:0,
+                y:0,
+                contador: 0
+            },
+            methods:{
+                add(){
+                    this.contador++
+                },
+                atualizarPosicao(e){
+                    this.x = e.clientX
+                    this.y = e.clientY
+                },
+                alerta(){
+                    alert("Enter!")
+                }
+            }
+        })
+    </script>
+</body>
+</html>
